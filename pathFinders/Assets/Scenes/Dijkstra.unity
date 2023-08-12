@@ -167,8 +167,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 349b3dcd53c86e947bdc726aeee7c56b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  prefab: {fileID: -1628652538077500427, guid: 577b05ed0127d044196d717240a5a26c, type: 3}
+  nodePrefab: {fileID: -1628652538077500427, guid: 577b05ed0127d044196d717240a5a26c, type: 3}
   textPrefab: {fileID: 5119767028376067570, guid: aa489fd566ab79c47b6111a595f8d6b3, type: 3}
+  linePrefab: {fileID: 5014081251207923938, guid: df0c9ae76b4018a4eb9d647299e40023, type: 3}
   forceRange: 10
   createCount: 10
   createPeriod: 0.1
@@ -867,8 +868,8 @@ EdgeCollider2D:
   m_Points:
   - {x: -9.5, y: 5}
   - {x: 9.5, y: 5}
-  - {x: 9.5, y: -5}
-  - {x: -9.5, y: -5}
+  - {x: 9.5, y: -4}
+  - {x: -9.5, y: -4}
   - {x: -9.5, y: 5}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
