@@ -8,41 +8,74 @@ public class Graph : MonoBehaviour
     public Node nodePrefab;
     public TextMeshPro textPrefab;
     public LineRenderer linePrefab;
+    private GameObject holder;    
+
+    public GameObject nodeInfoUIsHolder;
+    public NodeInfoPrefab nodeInfoUIPrefab;    
 
     public float forceRange;
-    public int createCount;
+    public int nodeCreateCount;
+    public int minLineMakerCount = 2;
+    public int maxLineMakerCount = 3;
+
+    private LineRenderer[,] lineRenderers;
 
     public float createPeriod = 0.1f;
 
     private bool init = false;
     private bool lineMaked = false;
 
-    List<Node> nodes = new();
+    List<Node> nodes;
+    List<NodeInfoPrefab> nodeInfoUIs;
 
+    public int[] dp;
+    public List<int>[] nodesToDist;
+    
+
+    private bool doDp = false;
+    public GameObject doDpButton;
+    public GameObject searchNextButton;
+
+    private Coroutine dpCoroutine;
     public void CreateNode()
     {
-        Node node = Instantiate(nodePrefab, transform.position, Quaternion.identity, transform);
-        node.AddRandForce(forceRange);        
-        nodes.Add(node);
+        Node node = Instantiate(nodePrefab, transform.position, Quaternion.identity, holder.transform);
+        node.AddRandForce(forceRange);
+        node.SetLinkedNodeList(new List<Node>(maxLineMakerCount));
+        
+        nodes.Add(node);        
     }
     public void CreateNodes()
     {
         if (init)
             return;
 
-        StartCoroutine(NodeCreateCoroutine());
-        init = true;
+        nodes = new(nodeCreateCount);
+        nodeInfoUIs = new(nodeCreateCount);
+        lineRenderers = new LineRenderer[nodeCreateCount, nodeCreateCount];
+        dp = new int[nodeCreateCount];
+        nodesToDist = new List<int>[nodeCreateCount];        
+
+        for(int i = 0; i < nodeCreateCount; i++)
+        {
+            nodesToDist[i] = new List<int>(nodeCreateCount);
+        }
+
+        holder = new GameObject("Holder");
+
+        StartCoroutine(NodeCreateCoroutine());        
     }
     IEnumerator NodeCreateCoroutine()
     {
         WaitForSeconds wait = new WaitForSeconds(createPeriod);
 
-        for(int i = 0; i < createCount; i++)
+        for(int i = 0; i < nodeCreateCount; i++)
         {
             CreateNode();
             yield return wait;
         }
-        
+
+        init = true;
         yield break;
     }
     public void StopNodesMoving()
@@ -54,37 +87,55 @@ public class Graph : MonoBehaviour
     }
     public void SetNumbers()
     {
-        nodes.Sort();
+        nodes.Sort();        
 
-        int nodeCount = nodes.Count;
-
-        for (int i = 0; i < nodeCount; i++)
+        for (int i = 0; i < nodeCreateCount; i++)
         {
-            var text = Instantiate(textPrefab, nodes[i].transform.position, Quaternion.identity);
+            nodes[i].Idx = i;
+            nodes[i].name = "Node" + i;
+
+            var text = Instantiate(textPrefab, nodes[i].transform.position, Quaternion.identity, holder.transform);
             text.text = i.ToString();
         }
     }
 
-    public void SetGoalLine()
+    public void MakeLinesAndInfoUI()
+    {   
+        int infoWidth = 800 / nodeCreateCount;
+
+        for (int i = 0; i < nodeCreateCount; i++)
+        {
+            var info = Instantiate(nodeInfoUIPrefab, nodeInfoUIsHolder.transform);
+            info.SetData(i, int.MaxValue);
+            info.SetWidth(infoWidth);     
+            nodeInfoUIs.Add(info);            
+
+            int lineCount = Random.Range(minLineMakerCount, maxLineMakerCount + 1);
+
+            for(int j = 1; j <= lineCount; j++)
+            {
+                if (i + j >= nodeCreateCount)
+                    break;
+                
+                MakeLine(nodes[i], nodes[i + j]);
+            }            
+        }
+
+        nodeInfoUIs[0].SetDist(0);
+    }
+    private void MakeLine(Node a, Node b)
     {
-        int nodeCount = nodes.Count;
+        a.MakeLine(b);
 
-        int range = Random.Range(0, nodeCount);
+        var line = Instantiate(linePrefab, holder.transform);
 
-        //for(int i = 0; i < range; i++)
-        //{
-        //    var line = Instantiate(linePrefab);
+        line.SetPosition(0, a.transform.position);
+        line.SetPosition(1, b.transform.position);
 
-
-        //}
-
-        var line = Instantiate(linePrefab);
-
-        line.SetPosition(0, nodes[0].transform.position);
-        line.SetPosition(1, nodes[nodeCount - 1].transform.position);
+        lineRenderers[a.Idx,b.Idx] = line;
     }
 
-    public void MakeLines()
+    public void MakeGraph()
     {
         if (!init)
             return;
@@ -96,6 +147,99 @@ public class Graph : MonoBehaviour
 
         StopNodesMoving();
         SetNumbers();
-        SetGoalLine();
+        MakeLinesAndInfoUI();
+
+        doDpButton.SetActive(true);
     }
+
+    public void ClearGraph()
+    {
+        if (!init)
+            return;
+
+        init = false;
+        lineMaked = false;
+
+        foreach (var infoUI in nodeInfoUIs)
+        {   
+            Destroy(infoUI.gameObject);
+        }
+
+        Destroy(holder);
+        
+        if(dpCoroutine != null)
+            StopCoroutine(dpCoroutine);
+
+        searchNextButton.SetActive(false);
+        doDpButton.SetActive(false);
+    }
+
+    public void StartSearch()
+    {
+        doDpButton.SetActive(false);
+        searchNextButton.SetActive(true);
+        dpCoroutine = StartCoroutine(DoDp());
+    }
+
+    public void SearchNext()
+    {
+        doDp = true;
+    }
+
+    IEnumerator DoDp()
+    {
+        System.Array.Fill(dp, int.MaxValue);
+        dp[0] = 0;
+
+        WaitUntil waitUntildoDpTrue = new WaitUntil(() => doDp);
+
+        Queue<Node> queue = new Queue<Node>();
+
+        queue.Enqueue(nodes[0]);
+        nodesToDist[0].Add(0);
+
+        while (queue.Count > 0)
+        {
+            var dequeued = queue.Dequeue();
+
+            foreach(var linked in dequeued.GetLinkedNodes())
+            {
+                int currIdx = dequeued.Idx;
+                int destIdx = linked.Idx;
+                int dist = (int)Vector2.Distance(dequeued.transform.position, nodes[destIdx].transform.position);
+
+                int newDist = dp[currIdx] + dist;
+
+                if (dp[destIdx] == int.MaxValue || newDist < dp[destIdx])
+                {
+                    nodesToDist[destIdx].Clear();
+                    nodesToDist[destIdx].AddRange(nodesToDist[currIdx]);
+                    nodesToDist[destIdx].Add(destIdx);
+
+                    dp[destIdx] = newDist;
+                    nodeInfoUIs[destIdx].SetDist(newDist);
+                }
+
+                if(!linked.Visitied)
+                {
+                    queue.Enqueue(linked);
+                    linked.Visitied = true;
+                }
+            }
+
+            doDp = false;
+            yield return waitUntildoDpTrue;
+        }
+
+        var result = nodesToDist[nodeCreateCount - 1];
+
+        for (int i = 0; i < result.Count - 1; i++)
+        {
+            var line = lineRenderers[result[i], result[i + 1]];
+            line.startColor = Color.green;
+            line.endColor = Color.green;
+
+            line.sortingOrder++;
+        }
+    }    
 }
