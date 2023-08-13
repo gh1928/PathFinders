@@ -23,14 +23,13 @@ public class Graph : MonoBehaviour
     public float createPeriod = 0.1f;
 
     private bool init = false;
-    private bool lineMaked = false;
+    private bool lineCreated = false;
 
     List<Node> nodes;
     List<NodeInfoPrefab> nodeInfoUIs;
 
     public int[] dp;
-    public List<int>[] nodesToDist;
-    
+    public List<int>[] pathRecord;    
 
     private bool doDp = false;
     public GameObject doDpButton;
@@ -54,11 +53,11 @@ public class Graph : MonoBehaviour
         nodeInfoUIs = new(nodeCreateCount);
         lineRenderers = new LineRenderer[nodeCreateCount, nodeCreateCount];
         dp = new int[nodeCreateCount];
-        nodesToDist = new List<int>[nodeCreateCount];        
+        pathRecord = new List<int>[nodeCreateCount];        
 
         for(int i = 0; i < nodeCreateCount; i++)
         {
-            nodesToDist[i] = new List<int>(nodeCreateCount);
+            pathRecord[i] = new List<int>(nodeCreateCount);
         }
 
         holder = new GameObject("Holder");
@@ -140,10 +139,10 @@ public class Graph : MonoBehaviour
         if (!init)
             return;
 
-        if (lineMaked)
+        if (lineCreated)
             return;
 
-        lineMaked = true;
+        lineCreated = true;
 
         StopNodesMoving();
         SetNumbers();
@@ -158,7 +157,7 @@ public class Graph : MonoBehaviour
             return;
 
         init = false;
-        lineMaked = false;
+        lineCreated = false;
 
         foreach (var infoUI in nodeInfoUIs)
         {   
@@ -196,7 +195,7 @@ public class Graph : MonoBehaviour
         Queue<Node> queue = new Queue<Node>();
 
         queue.Enqueue(nodes[0]);
-        nodesToDist[0].Add(0);
+        pathRecord[0].Add(0);
 
         while (queue.Count > 0)
         {
@@ -212,9 +211,9 @@ public class Graph : MonoBehaviour
 
                 if (dp[destIdx] == int.MaxValue || newDist < dp[destIdx])
                 {
-                    nodesToDist[destIdx].Clear();
-                    nodesToDist[destIdx].AddRange(nodesToDist[currIdx]);
-                    nodesToDist[destIdx].Add(destIdx);
+                    pathRecord[destIdx].Clear();
+                    pathRecord[destIdx].AddRange(pathRecord[currIdx]);
+                    pathRecord[destIdx].Add(destIdx);
 
                     dp[destIdx] = newDist;
                     nodeInfoUIs[destIdx].SetDist(newDist);
@@ -231,7 +230,7 @@ public class Graph : MonoBehaviour
             yield return waitUntildoDpTrue;
         }
 
-        var result = nodesToDist[nodeCreateCount - 1];
+        var result = pathRecord[nodeCreateCount - 1];
 
         for (int i = 0; i < result.Count - 1; i++)
         {
