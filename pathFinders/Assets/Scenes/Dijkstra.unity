@@ -173,7 +173,7 @@ MonoBehaviour:
   nodeInfoUIsHolder: {fileID: 2046323531}
   nodeInfoUIPrefab: {fileID: -8828598747375974296, guid: 31ccb05779e5bbb4db3ea0dd8df1a9e7, type: 3}
   forceRange: 10
-  nodeCreateCount: 10
+  nodeCreateCount: 15
   minLineMakerCount: 2
   maxLineMakerCount: 3
   createPeriod: 0.1

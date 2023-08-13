@@ -8,7 +8,7 @@ public class Node : MonoBehaviour, System.IComparable<Node>
     public int Idx;
     public bool Visitied = false;
 
-    private List<Node> childNodes;    
+    private List<Node> linkedNodes;    
     public void AddRandForce(float forceRange)
     {
         float xForce = Random.Range(0, forceRange);
@@ -29,14 +29,15 @@ public class Node : MonoBehaviour, System.IComparable<Node>
 
     public void SetLinkedNodeList(List<Node> linkedNodes)
     {
-        this.childNodes = linkedNodes;
+        this.linkedNodes = linkedNodes;
     }
     public List<Node> GetLinkedNodes()
     {
-        return childNodes;
+        return linkedNodes;
     }
     public void MakeLine(Node node)
     {
-        childNodes.Add(node);        
+        linkedNodes.Add(node);
+        node.linkedNodes.Add(this);
     }
 }
