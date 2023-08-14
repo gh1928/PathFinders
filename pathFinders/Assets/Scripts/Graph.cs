@@ -213,7 +213,7 @@ public class Graph : MonoBehaviour
             foreach (var linked in linkedNodeList)
             {                
                 int destIdx = linked.Idx;
-                int currToDestDistance = (int)Mathf.Sqrt(linked.Distance);
+                int currToDestDistance = (int)linked.Distance;
 
                 int newDist = dp[currIdx] + currToDestDistance;
 

@@ -20,7 +20,7 @@ public class Node : MonoBehaviour, System.IComparable<Node>
 
     public void SetDistance(Vector3 startPoint)
     {
-        Distance = Vector3.SqrMagnitude(startPoint - transform.position);
+        Distance = Vector3.Distance(startPoint, transform.position);
     }
 
     public int CompareTo(Node other)
