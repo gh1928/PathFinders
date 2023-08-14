@@ -6,7 +6,9 @@ public class Node : MonoBehaviour, System.IComparable<Node>
 {
     public Rigidbody2D rb;
     public int Idx;
-    public bool Visitied = false;
+    public bool Visitied = false;    
+
+    public float Distance;
 
     private List<Node> linkedNodes;    
     public void AddRandForce(float forceRange)
@@ -15,9 +17,15 @@ public class Node : MonoBehaviour, System.IComparable<Node>
         float yForce = Random.Range(-forceRange, forceRange);
         rb.AddForce(new Vector2(xForce, yForce), ForceMode2D.Impulse);        
     }
+
+    public void SetDistance(Vector3 startPoint)
+    {
+        Distance = Vector3.SqrMagnitude(startPoint - transform.position);
+    }
+
     public int CompareTo(Node other)
     {
-        return transform.position.x.CompareTo((other.transform.position.x));
+        return Distance.CompareTo(other.Distance);
     }
 
     public void Stop()
@@ -31,13 +39,21 @@ public class Node : MonoBehaviour, System.IComparable<Node>
     {
         this.linkedNodes = linkedNodes;
     }
-    public List<Node> GetLinkedNodes()
+
+    public List<Node> GetSortedLinkedNodes()
     {
+        foreach (Node node in linkedNodes)
+        {
+            node.SetDistance(transform.position);
+        }
+
+        linkedNodes.Sort();
+
         return linkedNodes;
     }
+
     public void MakeLine(Node node)
     {
-        linkedNodes.Add(node);
-        node.linkedNodes.Add(this);
+        linkedNodes.Add(node);        
     }
 }

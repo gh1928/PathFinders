@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEditor.Experimental.GraphView;
 
 public class Graph : MonoBehaviour
 {
@@ -26,7 +27,7 @@ public class Graph : MonoBehaviour
     private bool lineCreated = false;
 
     List<Node> nodes;
-    List<NodeInfoPrefab> nodeInfoUIs;
+    List<NodeInfoPrefab> nodeUIs;
 
     public int[] dp;
     public List<int>[] pathRecord;    
@@ -40,8 +41,8 @@ public class Graph : MonoBehaviour
     {
         Node node = Instantiate(nodePrefab, transform.position, Quaternion.identity, holder.transform);
         node.AddRandForce(forceRange);
-        node.SetLinkedNodeList(new List<Node>(maxLineMakerCount));
-        
+        node.SetLinkedNodeList(new List<Node>(maxLineMakerCount));        
+
         nodes.Add(node);        
     }
     public void CreateNodes()
@@ -50,7 +51,7 @@ public class Graph : MonoBehaviour
             return;
 
         nodes = new(nodeCreateCount);
-        nodeInfoUIs = new(nodeCreateCount);
+        nodeUIs = new(nodeCreateCount);
         lineRenderers = new LineRenderer[nodeCreateCount, nodeCreateCount];
         dp = new int[nodeCreateCount];
         pathRecord = new List<int>[nodeCreateCount];        
@@ -86,6 +87,11 @@ public class Graph : MonoBehaviour
     }
     public void SetNumbers()
     {
+        foreach(Node node in nodes)
+        {
+            node.SetDistance(transform.position);
+        }
+
         nodes.Sort();        
 
         for (int i = 0; i < nodeCreateCount; i++)
@@ -107,7 +113,7 @@ public class Graph : MonoBehaviour
             var info = Instantiate(nodeInfoUIPrefab, nodeInfoUIsHolder.transform);
             info.SetData(i, int.MaxValue);
             info.SetWidth(infoWidth);     
-            nodeInfoUIs.Add(info);            
+            nodeUIs.Add(info);            
 
             int lineCount = Random.Range(minLineMakerCount, maxLineMakerCount + 1);
 
@@ -120,7 +126,7 @@ public class Graph : MonoBehaviour
             }            
         }
 
-        nodeInfoUIs[0].SetDist(0);
+        nodeUIs[0].SetDist(0);
     }
     private void MakeLine(Node a, Node b)
     {
@@ -159,7 +165,7 @@ public class Graph : MonoBehaviour
         init = false;
         lineCreated = false;
 
-        foreach (var infoUI in nodeInfoUIs)
+        foreach (var infoUI in nodeUIs)
         {   
             Destroy(infoUI.gameObject);
         }
@@ -200,23 +206,23 @@ public class Graph : MonoBehaviour
         while (queue.Count > 0)
         {
             var dequeued = queue.Dequeue();
+            int currIdx = dequeued.Idx;
 
-            foreach(var linked in dequeued.GetLinkedNodes())
-            {
-                int currIdx = dequeued.Idx;
+            var linkedNodeList = dequeued.GetSortedLinkedNodes();            
+
+            foreach (var linked in linkedNodeList)
+            {                
                 int destIdx = linked.Idx;
-                int dist = (int)Vector2.Distance(dequeued.transform.position, nodes[destIdx].transform.position);
+                int currToDestDistance = (int)Mathf.Sqrt(linked.Distance);
 
-                int newDist = dp[currIdx] + dist;
+                int newDist = dp[currIdx] + currToDestDistance;
 
-                if (dp[destIdx] == int.MaxValue || newDist < dp[destIdx])
+                if (newDist < dp[destIdx])
                 {
-                    pathRecord[destIdx].Clear();
-                    pathRecord[destIdx].AddRange(pathRecord[currIdx]);
-                    pathRecord[destIdx].Add(destIdx);
-
                     dp[destIdx] = newDist;
-                    nodeInfoUIs[destIdx].SetDist(newDist);
+
+                    UpdatePathRecord(currIdx, destIdx);
+                    nodeUIs[destIdx].SetDist(newDist);
                 }
 
                 if(!linked.Visitied)
@@ -230,6 +236,18 @@ public class Graph : MonoBehaviour
             yield return waitUntildoDpTrue;
         }
 
+        ChangePathColor();
+    }    
+
+    private void UpdatePathRecord(int currIdx, int destIdx)
+    {
+        pathRecord[destIdx].Clear();
+        pathRecord[destIdx].AddRange(pathRecord[currIdx]);
+        pathRecord[destIdx].Add(destIdx);
+    }
+
+    private void ChangePathColor()
+    {
         var result = pathRecord[nodeCreateCount - 1];
 
         for (int i = 0; i < result.Count - 1; i++)
@@ -240,5 +258,5 @@ public class Graph : MonoBehaviour
 
             line.sortingOrder++;
         }
-    }    
+    }
 }
