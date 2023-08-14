@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
-using UnityEditor.Experimental.GraphView;
 
 public class Graph : MonoBehaviour
 {
@@ -21,7 +20,7 @@ public class Graph : MonoBehaviour
 
     private LineRenderer[,] lineRenderers;
 
-    public float createPeriod = 0.1f;
+    public float createInterval = 0.1f;
 
     private bool init = false;
     private bool lineCreated = false;
@@ -37,6 +36,7 @@ public class Graph : MonoBehaviour
     public GameObject searchNextButton;
 
     private Coroutine dpCoroutine;
+
     public void CreateNode()
     {
         Node node = Instantiate(nodePrefab, transform.position, Quaternion.identity, holder.transform);
@@ -67,7 +67,7 @@ public class Graph : MonoBehaviour
     }
     IEnumerator NodeCreateCoroutine()
     {
-        WaitForSeconds wait = new WaitForSeconds(createPeriod);
+        WaitForSeconds wait = new WaitForSeconds(createInterval);
 
         for(int i = 0; i < nodeCreateCount; i++)
         {
@@ -212,10 +212,9 @@ public class Graph : MonoBehaviour
 
             foreach (var linked in linkedNodeList)
             {                
-                int destIdx = linked.Idx;
-                int currToDestDistance = (int)linked.Distance;
+                int destIdx = linked.Idx;                
 
-                int newDist = dp[currIdx] + currToDestDistance;
+                int newDist = dp[currIdx] + (int)linked.Distance;
 
                 if (newDist < dp[destIdx])
                 {
